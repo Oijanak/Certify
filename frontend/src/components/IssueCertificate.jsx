@@ -1,459 +1,667 @@
-import React, { useState, useRef } from "react";
-import { useContractContext } from "../context/ContractContext";
-import { addFileToIPFS } from "../utils/ipfs";
+import { useState, useRef, useEffect } from "react";
+import { useDropzone } from "react-dropzone";
+import html2canvas from "html2canvas-pro";
+import { jsPDF } from "jspdf";
+import { useCertificate } from "../context/CertificateContext";
+import { useParams } from "react-router-dom";
+import PageSpinner from "./PageSpinner";
 
-function IssueCertificate() {
-  const [certificate, setCertificate] = useState({
-    recipientName: "",
-    courseName: "",
-    dateOfIssue: new Date().toISOString().split("T")[0],
+const IssueCertificate = () => {
+  const { getCertificateById } = useCertificate();
+  const { id } = useParams();
+  // Dynamic data that would come from props or API
+  const [dynamicData, setDynamicData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCertificate = async () => {
+      setLoading(true);
+      const data = await getCertificateById(id);
+
+      setDynamicData({
+        ...data,
+        completionDate: new Date().toISOString().split("T")[0],
+      });
+      setLoading(false);
+    };
+    fetchCertificate();
+  }, [id, getCertificateById]);
+
+  // Editable organization data
+  const [organizationData, setOrganizationData] = useState({
+    name: "",
     issuerName: "",
-    certificateId: "",
-    description: "",
-    file: null,
-    ipfsHash: "",
+    logo: null,
+    signature: null,
   });
 
-  const [previewMode, setPreviewMode] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  const { contract, signer } = useContractContext();
-  const fileInputRef = useRef(null);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [ipfsHash, setIpfsHash] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const certificateRef = useRef(null);
+  const [issuanceMethod, setIssuanceMethod] = useState("template");
 
-  const handleChange = (e) => {
+  // File upload handlers
+  const { getRootProps: getLogoRootProps, getInputProps: getLogoInputProps } =
+    useDropzone({
+      accept: { "image/*": [".png", ".jpg", ".jpeg"] },
+      maxFiles: 1,
+      onDrop: (acceptedFiles) => {
+        setOrganizationData((prev) => ({ ...prev, logo: acceptedFiles[0] }));
+      },
+    });
+
+  const {
+    getRootProps: getSignatureRootProps,
+    getInputProps: getSignatureInputProps,
+  } = useDropzone({
+    accept: { "image/*": [".png", ".jpg", ".jpeg"] },
+    maxFiles: 1,
+    onDrop: (acceptedFiles) => {
+      setOrganizationData((prev) => ({ ...prev, signature: acceptedFiles[0] }));
+    },
+  });
+
+  const {
+    getRootProps: getCertificateRootProps,
+    getInputProps: getCertificateInputProps,
+  } = useDropzone({
+    accept: {
+      "image/*": [".png", ".jpg", ".jpeg"],
+      "application/pdf": [".pdf"],
+    },
+    maxFiles: 1,
+    onDrop: (acceptedFiles) => {
+      setUploadedFile(acceptedFiles[0]);
+    },
+  });
+
+  const handleOrganizationChange = (e) => {
     const { name, value } = e.target;
-    setCertificate((prev) => ({
+    setOrganizationData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setCertificate((prev) => ({
-        ...prev,
-        file: e.target.files[0],
-      }));
-    }
+  const uploadToIPFS = async (file) => {
+    // In a real implementation, you would upload to IPFS here
+    // This is a mock implementation that returns a fake IPFS hash
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(
+          `Qm${Math.random().toString(36).substring(2, 15)}${Math.random()
+            .toString(36)
+            .substring(2, 15)}`
+        );
+      }, 1500);
+    });
   };
 
-  const storeOnBlockchain = async (certificateId, ipfsHash) => {
-    if (!signer) {
-      throw new Error("Wallet not connected");
-    }
-
-    const tx = await contract.issueCertificate(
-      "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-      certificate.recipientName,
-      certificate.courseName,
-      certificate.issuerName,
-      ipfsHash
-    );
-
-    await tx.wait();
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setErrorMessage("");
-    setSuccessMessage("");
-
+  const handleIssueCertificate = async () => {
+    console.log("click");
+    setIsUploading(true);
     try {
-      if (!certificate.file) {
-        throw new Error("Please select a file to upload");
+      let ipfsResponse;
+
+      if (issuanceMethod === "template") {
+        const canvas = await html2canvas(certificateRef.current, {
+          scale: 4,
+          logging: true,
+          useCORS: true,
+          backgroundColor: null,
+        });
+
+        const pdf = new jsPDF("portrait", "mm", "a4");
+
+        const imgData = canvas.toDataURL("image/png");
+
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+
+        const canvasRatio = canvasWidth / canvasHeight;
+        const pdfRatio = pdfWidth / pdfHeight;
+
+        let imgWidth, imgHeight;
+
+        if (canvasRatio > pdfRatio) {
+          imgWidth = pdfWidth;
+          imgHeight = pdfWidth / canvasRatio;
+        } else {
+          imgHeight = pdfHeight;
+          imgWidth = pdfHeight * canvasRatio;
+        }
+
+        const xOffset = (pdfWidth - imgWidth) / 2;
+        const yOffset = (pdfHeight - imgHeight) / 2;
+
+        pdf.addImage(imgData, "PNG", xOffset, yOffset, imgWidth, imgHeight);
+
+        // Instead of saving, get the PDF as a Blob:
+        const pdfBlob = pdf.output("blob");
+
+        // Upload to IPFS
+        ipfsResponse = await uploadToIPFS(pdfBlob);
+      } else {
+        // Upload the file directly to IPFS
+        ipfsResponse = await uploadToIPFS(uploadedFile);
       }
 
-      // Generate certificate ID if not provided
-      const certId =
-        certificate.certificateId ||
-        `CERT-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-
-      // Upload to IPFS
-      const ipfsHash = await addFileToIPFS(certificate.file);
-
-      await storeOnBlockchain(certId, ipfsHash);
-
-      setSuccessMessage(
-        "Certificate created and stored on blockchain successfully!"
-      );
-      setCertificate((prev) => ({
-        ...prev,
-        certificateId: certId,
-        ipfsHash: ipfsHash,
-      }));
+      setIpfsHash(ipfsResponse);
+      alert("Certificate successfully issued and uploaded to IPFS!");
     } catch (error) {
-      console.error("Error creating certificate:", error);
-      setErrorMessage(error.message || "Failed to create certificate");
+      console.error("Error issuing certificate:", error);
+      alert("Failed to issue certificate");
     } finally {
-      setIsSubmitting(false);
+      setIsUploading(false);
     }
   };
 
-  const generateCertificateId = () => {
-    const id = `CERT-${Math.random()
-      .toString(36)
-      .substring(2, 10)
-      .toUpperCase()}`;
-    setCertificate((prev) => ({ ...prev, certificateId: id }));
+  const downloadCertificate = async () => {
+    const canvas = await html2canvas(certificateRef.current, {
+      scale: 4,
+      useCORS: true,
+      backgroundColor: null,
+    });
+
+    const pdf = new jsPDF("portrait", "mm", "a4");
+
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+
+    const canvasRatio = canvasWidth / canvasHeight;
+    const pdfRatio = pdfWidth / pdfHeight;
+
+    let imgWidth, imgHeight;
+
+    // Fit image inside PDF page by width or height to avoid cropping
+    if (canvasRatio > pdfRatio) {
+      // Canvas is wider - fit by width
+      imgWidth = pdfWidth;
+      imgHeight = pdfWidth / canvasRatio;
+    } else {
+      // Canvas is taller - fit by height
+      imgHeight = pdfHeight;
+      imgWidth = pdfHeight * canvasRatio;
+    }
+
+    const xOffset = (pdfWidth - imgWidth) / 2;
+    const yOffset = (pdfHeight - imgHeight) / 2;
+
+    pdf.addImage(imgData, "PNG", xOffset, yOffset, imgWidth, imgHeight);
+
+    pdf.save("certificate.pdf");
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-gray-900">
-            Blockchain Certificate Creator
-          </h1>
-          <p className="mt-2 text-lg text-gray-600">
-            Create certificates, store files on IPFS, and record on blockchain
-          </p>
-        </div>
+  if (loading) return <PageSpinner />;
 
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="p-6">
-            <div className="flex space-x-4 mb-6">
+  return (
+    <div className="min-h-screen bg-gray-100 p-4">
+      <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+        <div className="p-8">
+          <h1 className="text-3xl font-bold text-center mb-8 text-blue-800">
+            Certificate Issuance System
+          </h1>
+
+          {/* Method Selection */}
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex rounded-md shadow-sm">
               <button
-                onClick={() => setPreviewMode(false)}
-                className={`px-4 py-2 rounded-md ${
-                  !previewMode
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-700"
+                onClick={() => setIssuanceMethod("template")}
+                className={`px-6 py-3 text-lg font-medium rounded-l-lg ${
+                  issuanceMethod === "template"
+                    ? "bg-blue-700 text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-100"
                 }`}
               >
-                Form
+                Create from Template
               </button>
               <button
-                onClick={() => setPreviewMode(true)}
-                className={`px-4 py-2 rounded-md ${
-                  previewMode
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-700"
+                onClick={() => setIssuanceMethod("upload")}
+                className={`px-6 py-3 text-lg font-medium rounded-r-lg ${
+                  issuanceMethod === "upload"
+                    ? "bg-blue-700 text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-100"
                 }`}
               >
-                Preview
+                Upload Existing Certificate
               </button>
             </div>
+          </div>
 
-            {previewMode ? (
-              <div className="border-2 border-gray-200 p-8 rounded-lg">
-                <div className="text-center mb-8">
-                  <h2 className="text-4xl font-bold text-blue-800 mb-2">
-                    CERTIFICATE OF COMPLETION
-                  </h2>
-                  <div className="w-32 h-1 bg-blue-600 mx-auto mb-6"></div>
-                  <p className="text-lg text-gray-600">
-                    This is to certify that
-                  </p>
-                  <h3 className="text-3xl font-bold text-gray-900 my-4">
-                    {certificate.recipientName || "Recipient Name"}
-                  </h3>
-                  <p className="text-lg text-gray-600">
-                    has successfully completed the course
-                  </p>
-                  <h4 className="text-2xl font-semibold text-blue-700 my-4">
-                    {certificate.courseName || "Course Name"}
-                  </h4>
-                </div>
+          {issuanceMethod === "template" ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Organization Settings */}
+              <div className="bg-gray-50 p-6 rounded-lg shadow-inner">
+                <h2 className="text-xl font-semibold mb-4 text-blue-800">
+                  Organization Settings
+                </h2>
 
-                <div className="mb-8">
-                  <p className="text-gray-700 text-center">
-                    {certificate.description ||
-                      "Description of achievement goes here"}
-                  </p>
-                </div>
-
-                {certificate.ipfsHash && (
-                  <div className="mb-6 p-4 bg-gray-100 rounded-md">
-                    <p className="text-sm font-medium text-gray-700">
-                      IPFS Hash:
-                    </p>
-                    <p className="text-sm text-gray-600 break-all">
-                      {certificate.ipfsHash}
-                    </p>
-                    <a
-                      href={`https://ipfs.io/ipfs/${certificate.ipfsHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 text-sm"
-                    >
-                      View on IPFS
-                    </a>
-                  </div>
-                )}
-
-                <div className="flex justify-between mt-12">
-                  <div className="text-center">
-                    <div className="h-16 border-t-2 border-gray-400 w-32 mx-auto mb-2"></div>
-                    <p className="text-gray-700">Date</p>
-                    <p className="font-semibold">
-                      {certificate.dateOfIssue ||
-                        new Date().toISOString().split("T")[0]}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <div className="h-16 border-t-2 border-gray-400 w-32 mx-auto mb-2"></div>
-                    <p className="text-gray-700">Certificate ID</p>
-                    <p className="font-semibold">
-                      {certificate.certificateId || "XXXX-XXXX"}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <div className="h-16 border-t-2 border-gray-400 w-32 mx-auto mb-2"></div>
-                    <p className="text-gray-700">Issued by</p>
-                    <p className="font-semibold">
-                      {certificate.issuerName || "Issuing Organization"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <div>
-                    <label
-                      htmlFor="recipientName"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Recipient Name
-                    </label>
-                    <input
-                      type="text"
-                      name="recipientName"
-                      id="recipientName"
-                      value={certificate.recipientName}
-                      onChange={handleChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="courseName"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Course Name
-                    </label>
-                    <input
-                      type="text"
-                      name="courseName"
-                      id="courseName"
-                      value={certificate.courseName}
-                      onChange={handleChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="dateOfIssue"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Date of Issue
-                    </label>
-                    <input
-                      type="date"
-                      name="dateOfIssue"
-                      id="dateOfIssue"
-                      value={certificate.dateOfIssue}
-                      onChange={handleChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="issuerName"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Issuer Name
-                    </label>
-                    <input
-                      type="text"
-                      name="issuerName"
-                      id="issuerName"
-                      value={certificate.issuerName}
-                      onChange={handleChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label
-                      htmlFor="description"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Description
-                    </label>
-                    <textarea
-                      name="description"
-                      id="description"
-                      rows={3}
-                      value={certificate.description}
-                      onChange={handleChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="certificateId"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Certificate ID
-                    </label>
-                    <div className="flex mt-1">
-                      <input
-                        type="text"
-                        name="certificateId"
-                        id="certificateId"
-                        value={certificate.certificateId}
-                        onChange={handleChange}
-                        className="block w-full border border-gray-300 rounded-l-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={generateCertificateId}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-r-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      >
-                        Generate
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label
-                      htmlFor="file"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Certificate File (PDF/Image)
-                    </label>
-                    <div className="mt-1 flex items-center">
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        id="file"
-                        name="file"
-                        onChange={handleFileChange}
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        className="hidden"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current.click()}
-                        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      >
-                        Choose File
-                      </button>
-                      <span className="ml-2 text-sm text-gray-500">
-                        {certificate.file
-                          ? certificate.file.name
-                          : "No file chosen"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex justify-center py-3 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                <div className="mb-4">
+                  <label
+                    className="block text-gray-700 mb-2"
+                    htmlFor="organizationName"
                   >
-                    {isSubmitting ? (
-                      <>
-                        <svg
-                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Processing...
-                      </>
-                    ) : (
-                      "Create & Store Certificate"
-                    )}
+                    Organization Name*
+                  </label>
+                  <input
+                    type="text"
+                    id="organizationName"
+                    name="name"
+                    value={organizationData.name}
+                    onChange={handleOrganizationChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label
+                    className="block text-gray-700 mb-2"
+                    htmlFor="issuerName"
+                  >
+                    Issuer Name*
+                  </label>
+                  <input
+                    type="text"
+                    id="issuerName"
+                    name="issuerName"
+                    value={organizationData.issuerName}
+                    onChange={handleOrganizationChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="block text-gray-700 mb-2">
+                      Organization Logo
+                    </label>
+                    <div
+                      {...getLogoRootProps()}
+                      className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center cursor-pointer hover:border-blue-500"
+                    >
+                      <input {...getLogoInputProps()} />
+                      {organizationData.logo ? (
+                        <div className="flex flex-col items-center">
+                          <img
+                            src={URL.createObjectURL(organizationData.logo)}
+                            alt="Organization Logo"
+                            className="h-20 object-contain mb-2"
+                          />
+                          <p className="text-sm text-gray-600">
+                            {organizationData.logo.name}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Click to change
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-gray-600">Drag & drop logo here</p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Supports: PNG, JPG
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-gray-700 mb-2">
+                      Signature Image
+                    </label>
+                    <div
+                      {...getSignatureRootProps()}
+                      className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center cursor-pointer hover:border-blue-500"
+                    >
+                      <input {...getSignatureInputProps()} />
+                      {organizationData.signature ? (
+                        <div className="flex flex-col items-center">
+                          <img
+                            src={URL.createObjectURL(
+                              organizationData.signature
+                            )}
+                            alt="Signature"
+                            className="h-20 object-contain mb-2"
+                          />
+                          <p className="text-sm text-gray-600">
+                            {organizationData.signature.name}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Click to change
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-gray-600">
+                            Drag & drop signature here
+                          </p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Supports: PNG, JPG
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-md mb-6">
+                  <h3 className="font-semibold text-blue-800 mb-2">
+                    Certificate Details (Auto-filled)
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <p>
+                      <span className="font-medium">Recipient:</span>{" "}
+                      {dynamicData.user.name}
+                    </p>
+                    <p>
+                      <span className="font-medium">Roll No:</span>{" "}
+                      {dynamicData.user.rollNo}
+                    </p>
+                    <p>
+                      <span className="font-medium">Course:</span>{" "}
+                      {dynamicData.user.course}
+                    </p>
+                    <p>
+                      <span className="font-medium">Completion Date:</span>{" "}
+                      {dynamicData.completionDate}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button
+                    onClick={handleIssueCertificate}
+                    disabled={isUploading || !organizationData.name}
+                    className="flex-1 bg-blue-700 text-white py-3 px-6 rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                  >
+                    {isUploading ? "Uploading to IPFS..." : "Issue Certificate"}
+                  </button>
+                  <button
+                    onClick={downloadCertificate}
+                    disabled={!organizationData.name}
+                    className="flex-1 bg-green-600 text-white py-3 px-6 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50"
+                  >
+                    Download Preview
                   </button>
                 </div>
 
-                {errorMessage && (
-                  <div className="rounded-md bg-red-50 p-4">
-                    <div className="flex">
-                      <div className="flex-shrink-0">
-                        <svg
-                          className="h-5 w-5 text-red-400"
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </div>
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-red-800">
-                          {errorMessage}
-                        </p>
-                      </div>
-                    </div>
+                {ipfsHash && (
+                  <div className="mt-4 p-3 bg-green-50 rounded-md">
+                    <p className="text-green-700">
+                      Certificate issued successfully!
+                    </p>
+                    <p className="text-sm mt-1 break-all">
+                      IPFS Hash: {ipfsHash}
+                    </p>
                   </div>
                 )}
+              </div>
 
-                {successMessage && (
-                  <div className="rounded-md bg-green-50 p-4">
-                    <div className="flex">
-                      <div className="flex-shrink-0">
+              {/* Certificate Preview */}
+              <div className="bg-gray-50 p-6 rounded-lg shadow-inner">
+                <h2 className="text-xl font-semibold mb-4 text-blue-800">
+                  Certificate Preview
+                </h2>
+                <div
+                  ref={certificateRef}
+                  className="border-2 border-gray-200 p-8 bg-white min-h-[600px] flex flex-col items-center justify-center relative"
+                >
+                  {/* Modified decorative border - using simple hex colors */}
+                  <div className="absolute inset-0 border-8 border-transparent border-t-[#bfdbfe] border-r-[#93c5fd] border-b-[#bfdbfe] border-l-[#93c5fd] pointer-events-none"></div>
+
+                  <div className="text-center w-full max-w-2xl px-4 py-8 relative z-10">
+                    {/* Organization Name at the top */}
+                    <h2 className="text-2xl font-bold mb-6 text-[#1e40af]">
+                      {organizationData.name}
+                    </h2>
+
+                    {/* Organization Logo */}
+                    {organizationData.logo && (
+                      <div className="mb-6 flex justify-center">
+                        <img
+                          src={URL.createObjectURL(organizationData.logo)}
+                          alt="Organization Logo"
+                          className="h-20 object-contain"
+                        />
+                      </div>
+                    )}
+
+                    <h3 className="text-4xl font-bold mb-6 text-[#1e40af] tracking-wide">
+                      CERTIFICATE OF ACHIEVEMENT
+                    </h3>
+                    <div className="w-24 h-1 bg-[#3b82f6] mx-auto mb-8"></div>
+
+                    <p className="mb-8 text-gray-600 text-lg">
+                      This is to certify that
+                    </p>
+
+                    <h4 className="text-5xl font-bold text-[#2563eb] mb-8 px-12 py-4 border-b-2 border-t-2 border-[#dbeafe]">
+                      {dynamicData.user.name}
+                    </h4>
+
+                    <div className="mb-8 text-gray-700">
+                      <p className="mb-2">
+                        with Roll No:{" "}
+                        <span className="font-semibold">
+                          {dynamicData.user.rollNo}
+                        </span>
+                      </p>
+                      <p>has successfully completed the course</p>
+                    </div>
+
+                    <h5 className="text-3xl font-semibold mb-8 text-gray-800 italic">
+                      "{dynamicData.user.course}"
+                    </h5>
+
+                    <p className="mb-8 text-gray-700 italic">
+                      "For outstanding performance and completion of all course
+                      requirements with distinction."
+                    </p>
+
+                    <div className="flex flex-col md:flex-row justify-between gap-8 mb-12 items-end">
+                      {/* Completion Date Section */}
+                      <div>
+                        <p className="font-semibold">Completion Date</p>
+                        <p>{dynamicData.completionDate}</p>
+                      </div>
+
+                      {/* Signature and Issuer Section */}
+                      <div className="flex flex-col items-center">
+                        {organizationData.signature && (
+                          <div className="mb-2 h-16">
+                            <img
+                              src={URL.createObjectURL(
+                                organizationData.signature
+                              )}
+                              alt="Signature"
+                              className="h-full object-contain"
+                            />
+                          </div>
+                        )}
+                        <div className="w-24 h-0.5 bg-gray-400 mb-1"></div>
+                        <p className="font-semibold">
+                          {organizationData.issuerName}
+                        </p>
+                        <p className="text-sm">Authorized Signatory</p>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-gray-500 mt-8">
+                      <p>Certificate ID:{dynamicData._id}</p>
+                      <p>
+                        This digital certificate is valid and verifiable on the
+                        blockchain
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gray-50 p-6 rounded-lg shadow-inner">
+              <h2 className="text-xl font-semibold mb-4 text-blue-800">
+                Upload Existing Certificate
+              </h2>
+
+              <div
+                {...getCertificateRootProps()}
+                className="border-2 border-dashed border-gray-300 rounded-md p-8 text-center cursor-pointer hover:border-blue-500 mb-6"
+              >
+                <input {...getCertificateInputProps()} />
+                {uploadedFile ? (
+                  <div className="flex flex-col items-center">
+                    {uploadedFile.type.startsWith("image/") ? (
+                      <img
+                        src={URL.createObjectURL(uploadedFile)}
+                        alt="Uploaded Certificate"
+                        className="max-h-60 object-contain mb-4"
+                      />
+                    ) : (
+                      <div className="bg-red-100 p-6 rounded-full mb-4">
                         <svg
-                          className="h-5 w-5 text-green-400"
                           xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
+                          className="h-12 w-12 text-red-500"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
                         >
                           <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                            clipRule="evenodd"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                           />
                         </svg>
                       </div>
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-green-800">
-                          {successMessage}
-                        </p>
-                      </div>
-                    </div>
+                    )}
+                    <p className="text-green-600 font-medium">
+                      {uploadedFile.name}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Click to select a different file
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-16 w-16 mx-auto text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                      />
+                    </svg>
+                    <p className="mt-2 text-gray-600">
+                      Drag & drop your certificate file here, or click to select
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Supports: PNG, JPG, PDF (Max: 5MB)
+                    </p>
                   </div>
                 )}
-              </form>
-            )}
-          </div>
+              </div>
+
+              {uploadedFile && (
+                <div>
+                  <div className="mb-4">
+                    <label
+                      className="block text-gray-700 mb-2"
+                      htmlFor="organizationNameUpload"
+                    >
+                      Organization Name*
+                    </label>
+                    <input
+                      type="text"
+                      id="organizationNameUpload"
+                      name="name"
+                      value={organizationData.name}
+                      onChange={handleOrganizationChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="mb-6">
+                    <label
+                      className="block text-gray-700 mb-2"
+                      htmlFor="issuerNameUpload"
+                    >
+                      Issuer Name*
+                    </label>
+                    <input
+                      type="text"
+                      id="issuerNameUpload"
+                      name="issuerName"
+                      value={organizationData.issuerName}
+                      onChange={handleOrganizationChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <button
+                      onClick={handleIssueCertificate}
+                      disabled={isUploading || !organizationData.name}
+                      className="flex-1 bg-blue-700 text-white py-3 px-6 rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                    >
+                      {isUploading
+                        ? "Uploading to IPFS..."
+                        : "Issue Certificate"}
+                    </button>
+                    <button
+                      onClick={() => setUploadedFile(null)}
+                      className="flex-1 bg-gray-600 text-white py-3 px-6 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {ipfsHash && (
+                <div className="mt-4 p-3 bg-green-50 rounded-md">
+                  <p className="text-green-700">
+                    Certificate issued successfully!
+                  </p>
+                  <p className="text-sm mt-1 break-all">
+                    IPFS Hash: {ipfsHash}
+                  </p>
+                  {uploadedFile && (
+                    <a
+                      href={URL.createObjectURL(uploadedFile)}
+                      download={`${
+                        organizationData.name
+                      }_certificate.${uploadedFile.name.split(".").pop()}`}
+                      className="mt-2 inline-block text-sm text-blue-600 hover:underline"
+                    >
+                      Download Original File
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
-}
+};
 
 export default IssueCertificate;

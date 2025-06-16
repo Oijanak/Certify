@@ -18,12 +18,16 @@ import Certificates from "./components/Certificates";
 import IssueCertificate from "./components/IssueCertificate";
 import ProfilePage from "./pages/ProfilePage";
 import RequestCertificate from "./pages/RequestCertificate";
+import { CertificateProvider } from "./context/CertificateContext";
+import CertificateDetails from "./components/CertificateDetails";
 
 const router = createBrowserRouter([
   {
     element: (
       <AuthProvider>
-        <AppLayout />
+        <CertificateProvider>
+          <AppLayout />
+        </CertificateProvider>
       </AuthProvider>
     ),
     children: [
@@ -90,8 +94,12 @@ const router = createBrowserRouter([
                 element: <Certificates />,
               },
               {
-                path: "certificates/issue",
+                path: "certificates/issue/:id",
                 element: <IssueCertificate />,
+              },
+              {
+                path: "certificates/:id",
+                element: <CertificateDetails />,
               },
             ],
           },

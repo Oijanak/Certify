@@ -69,7 +69,7 @@ const Dashboard = () => {
             title: "Cybersecurity Specialist Certificate",
             issuer: "Computer Science Department",
             dateRequested: "2023-07-18",
-            status: "created",
+            status: "pending",
             type: "Skill Assessment",
             credentialId: "CSS-2023-3178",
             image: "https://via.placeholder.com/150",
@@ -333,35 +333,19 @@ const Dashboard = () => {
                                     <p className="text-sm text-gray-500">
                                       Status:{" "}
                                       <span className="text-gray-900">
-                                        {cert.statusDetails}
+                                        {cert.status}
                                       </span>
                                     </p>
                                   </>
                                 )}
                               </div>
                               <div>
-                                <p className="text-sm text-gray-500">
-                                  Credential ID:{" "}
-                                  <span className="font-mono text-gray-900">
-                                    {cert.credentialId}
-                                  </span>
-                                </p>
                                 {cert.status === "created" &&
                                   cert.isVerified && (
                                     <p className="text-sm text-gray-500 mt-1 flex items-center">
                                       <DocumentCheckIcon className="h-4 w-4 mr-1 text-green-500" />
                                       <span className="text-green-600">
                                         Verified credential
-                                      </span>
-                                    </p>
-                                  )}
-                                {cert.status === "pending" &&
-                                  cert.estimatedCompletion && (
-                                    <p className="text-sm text-gray-500 mt-1 flex items-center">
-                                      <ClockIcon className="h-4 w-4 mr-1 text-yellow-500" />
-                                      <span className="text-yellow-600">
-                                        Estimated:{" "}
-                                        {formatDate(cert.estimatedCompletion)}
                                       </span>
                                     </p>
                                   )}

@@ -5,7 +5,7 @@ contract Certification {
     address public owner;
     
     struct Certificate {
-        uint256 id;
+        string id;
         string holderName;
         string courseName;
         uint256 issueDate;
@@ -17,11 +17,11 @@ contract Certification {
     mapping(address => Certificate[]) private userCertificates;
     
     // Mapping from certificate ID to existence flag (for verification)
-    mapping(uint256 => bool) private certificateExists;
+    mapping(string => bool) private certificateExists;
     
     // Event emitted when a new certificate is issued
     event CertificateIssued(
-        uint256 indexed id,
+        string indexed id,
         address indexed holder,
         string holderName,
         string courseName,
@@ -47,23 +47,19 @@ contract Certification {
      * @param _credentialUrl URL to the credential (optional)
      */
     function issueCertificate(
+        string memory _certificateId,
         address _holder,
         string memory _holderName,
         string memory _courseName,
         string memory _issuer,
         string memory _credentialUrl
     ) external onlyOwner {
-        uint256 certificateId = uint256(keccak256(abi.encodePacked(
-            _holder,
-            _holderName,
-            _courseName,
-            block.timestamp
-        )));
+    
         
-        require(!certificateExists[certificateId], "Certificate ID already exists");
+        require(!certificateExists[_certificateId], "Certificate ID already exists");
         
         Certificate memory newCert = Certificate({
-            id: certificateId,
+            id: _certificateId,
             holderName: _holderName,
             courseName: _courseName,
             issueDate: block.timestamp,
@@ -72,10 +68,10 @@ contract Certification {
         });
         
         userCertificates[_holder].push(newCert);
-        certificateExists[certificateId] = true;
+        certificateExists[_certificateId] = true;
         
         emit CertificateIssued(
-            certificateId,
+            _certificateId,
             _holder,
             _holderName,
             _courseName,
@@ -93,25 +89,31 @@ contract Certification {
         return userCertificates[_user];
     }
     
-    /**
-     * @dev Verify if a certificate exists
-     * @param _certificateId ID of the certificate to verify
-     * @return bool True if certificate exists, false otherwise
-     */
-    function verifyCertificate(uint256 _certificateId) external view returns (bool) {
-        return certificateExists[_certificateId];
+   /**
+ * @dev Verify if a certificate with a given ID exists for a specific user
+ * @param _user Address of the user
+ * @param _certificateId ID of the certificate to verify
+ * @return bool True if certificate exists for the user, false otherwise
+ */
+function verifyCertificate(address _user, string memory _certificateId) external view returns (bool) {
+    Certificate[] memory certs = userCertificates[_user];
+    for (uint i = 0; i < certs.length; i++) {
+        if (keccak256(bytes(certs[i].id)) == keccak256(bytes(_certificateId))) {
+            return true;
+        }
     }
-    
+    return false;
+}
     /**
      * @dev Get certificate details by ID
      * @param _user Address of the user
      * @param _certificateId ID of the certificate
      * @return Certificate struct if found
      */
-    function getCertificateById(address _user, uint256 _certificateId) external view returns (Certificate memory) {
+    function getCertificateById(address _user, string memory _certificateId) external view returns (Certificate memory) {
         Certificate[] memory certs = userCertificates[_user];
         for (uint i = 0; i < certs.length; i++) {
-            if (certs[i].id == _certificateId) {
+             if (keccak256(bytes(certs[i].id)) == keccak256(bytes(_certificateId))) {
                 return certs[i];
             }
         }

@@ -9,11 +9,11 @@ exports.requestCertificate = async (req, res) => {
       certificateType,
       requestedDate: Date.now(),
       documentUrl: req.fileNames.join(","),
+      user: req.user.id,
     });
     await certificate.save();
     res.status(201).json(certificate);
   } catch (error) {
-    console.error("Error creating certificate:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };
@@ -52,7 +52,7 @@ exports.getAllCertificates = async (req, res) => {
   try {
     const certificates = await Certificate.find().populate(
       "user",
-      "_id email publicAddress"
+      "_id email publicAddress course"
     );
     res.json(certificates);
   } catch (error) {
@@ -65,7 +65,7 @@ exports.getCertificateById = async (req, res) => {
   try {
     const certificate = await Certificate.findById(req.params.id).populate(
       "user",
-      "_id email publicAddress"
+      "_id name email publicAddress rollNo course"
     );
     if (!certificate)
       return res.status(404).json({ message: "Certificate not found" });

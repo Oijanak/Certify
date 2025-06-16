@@ -22,6 +22,12 @@ const certificateSchema = new mongoose.Schema({
   certificateId: {
     type: String,
   },
+  recieptId: {
+    type: String,
+  },
+  ipfsId: {
+    type: String,
+  },
   status: {
     type: String,
     enum: ["created", "pending", "rejected"],
