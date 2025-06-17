@@ -16,11 +16,8 @@ const certificateSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   },
-  issueDate: {
+  issuedDate: {
     type: Date,
-  },
-  certificateId: {
-    type: String,
   },
   recieptId: {
     type: String,
@@ -33,10 +30,19 @@ const certificateSchema = new mongoose.Schema({
     enum: ["created", "pending", "rejected"],
     default: "pending",
   },
+  issuer: {
+    type: String,
+  },
   requestedDate: {
     type: Date,
   },
+  organizationName: {
+    type: String,
+  },
   documentUrl: {
+    type: String,
+  },
+  transactionId: {
     type: String,
   },
 });

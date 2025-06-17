@@ -1,4 +1,6 @@
 const Certificate = require("../models/Cerificate");
+const fs = require("fs");
+const path = require("path");
 
 exports.requestCertificate = async (req, res) => {
   try {
@@ -18,32 +20,58 @@ exports.requestCertificate = async (req, res) => {
   }
 };
 
-exports.createCertificate = async (req, res) => {
+exports.updateCertificate = async (req, res) => {
   try {
+    const { id } = req.params;
     const {
-      title,
-      course,
+      issuedDate,
       recipientName,
-      user,
-      certificateId, // PDF/Image URL
-      instituteName,
+      ipfsId,
+      oraganizationName,
       status,
+      transactionId,
+      issuer,
     } = req.body;
 
-    const certificate = new Certificate({
-      title,
-      course,
-      recipientName,
-      user,
-      certificateId,
-      instituteName,
-      status,
-    });
+    const certificate = await Certificate.findById(id);
+    if (!certificate) {
+      return res.status(404).json({ message: "Certificate not found" });
+    }
+
+    // Delete files listed in documentUrl
+    if (certificate.documentUrl) {
+      const fileNames = certificate.documentUrl.split(",").map((f) => f.trim());
+      fileNames.forEach((fileName) => {
+        const filePath = path.join(
+          __dirname,
+          "../uploads/certifications",
+          fileName
+        );
+        fs.unlink(filePath, (err) => {
+          if (err) {
+            console.error(`Error deleting file ${fileName}:`, err.message);
+          } else {
+            console.log(`Deleted file: ${fileName}`);
+          }
+        });
+      });
+    }
+
+    // Update fields
+    certificate.recipientName = recipientName;
+    certificate.issuedDate = issuedDate;
+    certificate.ipfsId = ipfsId;
+    certificate.organizationName = oraganizationName;
+    certificate.status = status;
+    certificate.transactionId = transactionId;
+    certificate.issuer = issuer;
+    certificate.documentUrl = null; // Clear document URLs
 
     await certificate.save();
-    res.status(201).json(certificate);
+
+    res.status(200).json(certificate);
   } catch (error) {
-    console.error("Error creating certificate:", error);
+    console.error("Error updating certificate:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };

@@ -10,7 +10,7 @@ contract Certification {
         string courseName;
         uint256 issueDate;
         string issuer;
-        string credentialUrl;
+        string ipfsId;
     }
     
     // Mapping from user address to their certificates
@@ -44,7 +44,7 @@ contract Certification {
      * @param _holderName Name of the certificate recipient
      * @param _courseName Name of the course/certification
      * @param _issuer Name of the issuing organization
-     * @param _credentialUrl URL to the credential (optional)
+     * @param _ipfsId URL to the credential (optional)
      */
     function issueCertificate(
         string memory _certificateId,
@@ -52,7 +52,7 @@ contract Certification {
         string memory _holderName,
         string memory _courseName,
         string memory _issuer,
-        string memory _credentialUrl
+        string memory _ipfsId
     ) external onlyOwner {
     
         
@@ -64,7 +64,7 @@ contract Certification {
             courseName: _courseName,
             issueDate: block.timestamp,
             issuer: _issuer,
-            credentialUrl: _credentialUrl
+            ipfsId: _ipfsId
         });
         
         userCertificates[_holder].push(newCert);

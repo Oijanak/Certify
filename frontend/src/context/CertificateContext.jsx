@@ -23,7 +23,7 @@ export const CertificateProvider = ({ children }) => {
       if (!res.ok) throw new Error("Failed to fetch certificates");
 
       const data = await res.json();
-      console.log(data);
+
       setCertificates(data);
     } catch (err) {
       setError(err.message || "Unexpected error");
@@ -52,6 +52,32 @@ export const CertificateProvider = ({ children }) => {
     }
   };
 
+  const updateCertificate = async (id, updateData) => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/certificates/${id}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(updateData),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const updatedCertificate = await response.json();
+      console.log("Certificate updated:", updatedCertificate);
+      return updatedCertificate;
+    } catch (error) {
+      console.error("Error updating certificate:", error);
+    }
+  };
+
   useEffect(() => {
     fetchCertificates();
   }, [token]);
@@ -64,6 +90,7 @@ export const CertificateProvider = ({ children }) => {
         error,
         fetchCertificates,
         getCertificateById,
+        updateCertificate,
       }}
     >
       {children}

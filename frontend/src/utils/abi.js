@@ -9,9 +9,9 @@ export const abi = [
     inputs: [
       {
         indexed: true,
-        internalType: "uint256",
+        internalType: "string",
         name: "id",
-        type: "uint256",
+        type: "string",
       },
       {
         indexed: true,
@@ -55,9 +55,9 @@ export const abi = [
         type: "address",
       },
       {
-        internalType: "uint256",
+        internalType: "string",
         name: "_certificateId",
-        type: "uint256",
+        type: "string",
       },
     ],
     name: "getCertificateById",
@@ -65,9 +65,9 @@ export const abi = [
       {
         components: [
           {
-            internalType: "uint256",
+            internalType: "string",
             name: "id",
-            type: "uint256",
+            type: "string",
           },
           {
             internalType: "string",
@@ -91,7 +91,7 @@ export const abi = [
           },
           {
             internalType: "string",
-            name: "credentialUrl",
+            name: "ipfsId",
             type: "string",
           },
         ],
@@ -116,9 +116,9 @@ export const abi = [
       {
         components: [
           {
-            internalType: "uint256",
+            internalType: "string",
             name: "id",
-            type: "uint256",
+            type: "string",
           },
           {
             internalType: "string",
@@ -142,7 +142,7 @@ export const abi = [
           },
           {
             internalType: "string",
-            name: "credentialUrl",
+            name: "ipfsId",
             type: "string",
           },
         ],
@@ -156,6 +156,11 @@ export const abi = [
   },
   {
     inputs: [
+      {
+        internalType: "string",
+        name: "_certificateId",
+        type: "string",
+      },
       {
         internalType: "address",
         name: "_holder",
@@ -178,7 +183,7 @@ export const abi = [
       },
       {
         internalType: "string",
-        name: "_credentialUrl",
+        name: "_ipfsId",
         type: "string",
       },
     ],
@@ -216,9 +221,14 @@ export const abi = [
   {
     inputs: [
       {
-        internalType: "uint256",
+        internalType: "address",
+        name: "_user",
+        type: "address",
+      },
+      {
+        internalType: "string",
         name: "_certificateId",
-        type: "uint256",
+        type: "string",
       },
     ],
     name: "verifyCertificate",

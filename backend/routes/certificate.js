@@ -14,7 +14,7 @@ router.post(
   upload.array("attachments", 2),
   certificateController.requestCertificate
 );
-router.post("/", adminAuthenticate, certificateController.createCertificate);
+router.post("/:id", adminAuthenticate, certificateController.updateCertificate);
 router.get("/", adminAuthenticate, certificateController.getAllCertificates);
 router.get("/:id", adminAuthenticate, certificateController.getCertificateById);
 router.delete(
