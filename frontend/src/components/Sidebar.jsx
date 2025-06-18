@@ -80,15 +80,6 @@ const Sidebar = () => {
                     <span className="ml-3">All Users</span>
                   </Link>
                 </li>
-                <li>
-                  <a
-                    href="#"
-                    className="flex items-center px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700"
-                  >
-                    <UsersIcon className="h-6 w-6" />
-                    <span className="ml-3">User Activity</span>
-                  </a>
-                </li>
               </ul>
             </div>
 
@@ -107,27 +98,7 @@ const Sidebar = () => {
                     <span className="ml-3">Certificates</span>
                   </Link>
                 </li>
-                <li>
-                  <Link
-                    to="certificates/issue"
-                    className="flex items-center px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700"
-                  >
-                    <DocumentTextIcon className="h-6 w-6" />
-                    <span className="ml-3">Issue Certificate</span>
-                  </Link>
-                </li>
               </ul>
-            </div>
-
-            {/* Settings */}
-            <div>
-              <a
-                href="#"
-                className="flex items-center px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700"
-              >
-                <CogIcon className="h-6 w-6" />
-                <span className="ml-3">Settings</span>
-              </a>
             </div>
           </nav>
         </div>

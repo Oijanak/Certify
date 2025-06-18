@@ -195,12 +195,21 @@ const Certificates = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        className="text-blue-600 hover:text-blue-900 mr-3"
-                        onClick={() => navigate(`${cert._id}`)}
-                      >
-                        View
-                      </button>
+                      {cert.status === "created" ? (
+                        <button
+                          className="text-blue-600 hover:text-blue-900 mr-3"
+                          onClick={() => navigate(`created/${cert._id}`)}
+                        >
+                          View
+                        </button>
+                      ) : (
+                        <button
+                          className="text-blue-600 hover:text-blue-900 mr-3"
+                          onClick={() => navigate(`${cert._id}`)}
+                        >
+                          View
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))

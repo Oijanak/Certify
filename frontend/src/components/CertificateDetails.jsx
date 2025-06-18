@@ -13,7 +13,7 @@ const CertificateDetails = () => {
   useEffect(() => {
     const fetchCertificate = async () => {
       setLoading(true);
-      const data = await getCertificateById(id); // 👈 Fetch by ID
+      const data = await getCertificateById(id);
       setCertificateData(data);
       setLoading(false);
     };
@@ -23,8 +23,7 @@ const CertificateDetails = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  if (loading) return <PageSpinner />;
-
+  if (!certificateData || loading) return <PageSpinner />;
   const {
     _id,
     title,

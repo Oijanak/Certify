@@ -110,8 +110,6 @@ export default function RegisterForm() {
         return;
       }
       const result = await response.json();
-
-      console.log("Registration successful:", result);
       navigate(`/verify-email?email=${email}`);
     } catch (error) {
       setError(error.message);
@@ -124,7 +122,7 @@ export default function RegisterForm() {
   };
 
   return (
-    <div className="bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="bg-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-4xl">
         {" "}
         {/* Increased max width */}

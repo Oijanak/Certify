@@ -88,7 +88,7 @@ export default function CertificateVerification() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Verification Form Section */}
-      <div className="bg-white shadow-sm">
+      <div className="bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900">
@@ -131,7 +131,7 @@ export default function CertificateVerification() {
                 <button
                   onClick={verifyCertificate}
                   disabled={loading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center">
@@ -168,7 +168,7 @@ export default function CertificateVerification() {
       </div>
 
       {/* Results Section */}
-      <div className="flex-1 bg-gray-50">
+      <div className="flex-1 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {error && !isVerified && (
             <div className="bg-red-50 border-l-4 border-red-400 p-6 mb-8 rounded-lg shadow-sm">

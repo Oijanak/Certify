@@ -1,130 +1,71 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   ArrowDownTrayIcon,
   CheckBadgeIcon,
+  CircleStackIcon,
   ClockIcon,
   DocumentCheckIcon,
   DocumentTextIcon,
   FaceSmileIcon,
   MagnifyingGlassIcon,
+  PlusCircleIcon,
   ShareIcon,
+  XCircleIcon,
 } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
+import { useCertificate } from "../context/CertificateContext";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("created");
-  const [certificates, setCertificates] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { certificates, loading } = useCertificate();
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        // Mock certificate data
-        const mockCertificates = [
-          {
-            id: 1,
-            title: "Advanced Machine Learning Certification",
-            issuer: "Computer Science Department",
-            dateEarned: "2023-06-15",
-            expiryDate: "2026-06-15",
-            status: "created",
-            type: "Course Completion",
-            credentialId: "AML-2023-1567",
-            image: "https://via.placeholder.com/150",
-            shareUrl: "https://certs.edu/verify/AML-2023-1567",
-            isVerified: true,
-            canDownload: true,
-          },
-          {
-            id: 2,
-            title: "Data Science Fundamentals Certificate",
-            issuer: "Data Science Institute",
-            dateEarned: "2023-05-22",
-            expiryDate: "2025-05-22",
-            status: "created",
-            type: "Workshop Completion",
-            credentialId: "DSF-2023-0891",
-            image: "https://via.placeholder.com/150",
-            shareUrl: "https://certs.edu/verify/DSF-2023-0891",
-            isVerified: true,
-            canDownload: true,
-          },
-          {
-            id: 3,
-            title: "Blockchain Technology Certification",
-            issuer: "Engineering Faculty",
-            dateRequested: "2023-07-10",
-            status: "created",
-            type: "Program Completion",
-            credentialId: "BLC-2023-2045",
-            image: "https://via.placeholder.com/150",
-            statusDetails: "Awaiting Department Approval",
-            estimatedCompletion: "2023-08-15",
-          },
-          {
-            id: 4,
-            title: "Cybersecurity Specialist Certificate",
-            issuer: "Computer Science Department",
-            dateRequested: "2023-07-18",
-            status: "pending",
-            type: "Skill Assessment",
-            credentialId: "CSS-2023-3178",
-            image: "https://via.placeholder.com/150",
-            statusDetails: "Under Faculty Review",
-            estimatedCompletion: "2023-08-01",
-          },
-          {
-            id: 5,
-            title: "Cloud Architecture Certification",
-            issuer: "Engineering Faculty",
-            dateEarned: "2023-04-05",
-            expiryDate: "2025-04-05",
-            status: "created",
-            type: "Course Completion",
-            credentialId: "CAC-2023-0423",
-            image: "https://via.placeholder.com/150",
-            shareUrl: "https://certs.edu/verify/CAC-2023-0423",
-            isVerified: true,
-            canDownload: true,
-          },
-        ];
-
-        setCertificates(mockCertificates);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
   const filteredCertificates = certificates
-    .filter((cert) =>
-      activeTab === "created"
-        ? cert.status === "created"
-        : cert.status === "pending"
-    )
+    .filter((cert) => {
+      if (activeTab === "created") return cert.status === "created";
+      if (activeTab === "pending") return cert.status === "pending";
+      if (activeTab === "rejected") return cert.status === "rejected";
+      return false;
+    })
     .filter(
       (cert) =>
         cert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cert.issuer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cert.type.toLowerCase().includes(searchTerm.toLowerCase())
+        (cert.organizationName &&
+          cert.organizationName
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())) ||
+        cert.certificateType.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
   const downloadCertificate = (certId) => {
-    console.log(`Downloading certificate ${certId}`);
-    alert(`Certificate ${certId} download started`);
+    const url = `http://localhost:8080/ipfs/${certId}`;
+
+    fetch(url)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return response.blob();
+      })
+      .then((blob) => {
+        const link = document.createElement("a");
+        link.href = window.URL.createObjectURL(blob);
+        link.download = "certificate";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      })
+      .catch((error) => {
+        console.error("Download failed:", error);
+      });
   };
 
-  const shareCertificate = (shareUrl) => {
+  const shareCertificate = (ipfsId) => {
+    const shareUrl = `https://ipfs.io/ipfs/${ipfsId}`;
     console.log(`Sharing certificate at ${shareUrl}`);
     navigator.clipboard.writeText(shareUrl);
-    alert("Certificate link copied to clipboard!");
+    alert("Certificate IPFS link copied to clipboard!");
   };
 
   const formatDate = (dateString) => {
@@ -133,7 +74,7 @@ const Dashboard = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
@@ -142,12 +83,12 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen  bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {/* Quick Stats */}
         <div className="px-4 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-white shadow rounded-lg p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
@@ -170,7 +111,7 @@ const Dashboard = () => {
                 </div>
                 <div className="ml-5">
                   <dt className="text-sm font-medium text-gray-500 truncate">
-                    Pending Certificates
+                    Pending Requests
                   </dt>
                   <dd className="mt-1 text-3xl font-semibold text-gray-900">
                     {certificates.filter((c) => c.status === "pending").length}
@@ -178,6 +119,29 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
+            <div className="bg-white shadow rounded-lg p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 bg-red-500 rounded-md p-3">
+                  <XCircleIcon className="h-6 w-6 text-white" />
+                </div>
+                <div className="ml-5">
+                  <dt className="text-sm font-medium text-gray-500 truncate">
+                    Rejected Requests
+                  </dt>
+                  <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                    {certificates.filter((c) => c.status === "rejected").length}
+                  </dd>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate("certificate/request")}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-md p-4 transition flex items-center justify-center space-x-3"
+            >
+              <PlusCircleIcon className="h-6 w-6 text-white" />
+              <span className="text-base font-medium">Request Certificate</span>
+            </button>
           </div>
         </div>
 
@@ -219,6 +183,26 @@ const Dashboard = () => {
                       </span>
                     )}
                   </button>
+                  <button
+                    onClick={() => setActiveTab("rejected")}
+                    className={`${
+                      activeTab === "rejected"
+                        ? "border-indigo-500 text-indigo-600"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center`}
+                  >
+                    <XCircleIcon className="h-5 w-5 mr-2" />
+                    Rejected Requests
+                    {certificates.filter((c) => c.status === "rejected")
+                      .length > 0 && (
+                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        {
+                          certificates.filter((c) => c.status === "rejected")
+                            .length
+                        }
+                      </span>
+                    )}
+                  </button>
                 </nav>
                 <div className="mt-4 md:mt-0 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -246,7 +230,7 @@ const Dashboard = () => {
                         No certificates available
                       </h3>
                     </>
-                  ) : (
+                  ) : activeTab === "pending" ? (
                     <>
                       <FaceSmileIcon className="mx-auto h-12 w-12 text-gray-400" />
                       <h3 className="mt-2 text-sm font-medium text-gray-900">
@@ -263,13 +247,20 @@ const Dashboard = () => {
                         </button>
                       </div>
                     </>
+                  ) : (
+                    <>
+                      <XCircleIcon className="mx-auto h-12 w-12 text-gray-400" />
+                      <h3 className="mt-2 text-sm font-medium text-gray-900">
+                        No rejected certificate requests
+                      </h3>
+                    </>
                   )}
                 </div>
               ) : (
                 <div className="space-y-6">
                   {filteredCertificates.map((cert) => (
                     <div
-                      key={cert.id}
+                      key={cert._id}
                       className="border border-gray-200 rounded-lg overflow-hidden"
                     >
                       <div className="p-4 sm:p-6">
@@ -281,7 +272,7 @@ const Dashboard = () => {
                                   {cert.title}
                                 </h3>
                                 <p className="mt-1 text-sm text-gray-500">
-                                  {cert.issuer}
+                                  {cert.organizationName}
                                 </p>
                               </div>
                               <div className="mt-2 sm:mt-0">
@@ -290,10 +281,15 @@ const Dashboard = () => {
                                     <CheckBadgeIcon className="h-3 w-3 mr-1" />
                                     Issued
                                   </span>
-                                ) : (
+                                ) : cert.status === "pending" ? (
                                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                     <ClockIcon className="h-3 w-3 mr-1" />
                                     Pending
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    <XCircleIcon className="h-3 w-3 mr-1" />
+                                    Rejected
                                   </span>
                                 )}
                               </div>
@@ -302,23 +298,46 @@ const Dashboard = () => {
                             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 <p className="text-sm text-gray-500">
-                                  Type:{" "}
+                                  Certificate Id:{" "}
                                   <span className="text-gray-900">
-                                    {cert.type}
+                                    {cert._id}
                                   </span>
                                 </p>
+                                <p className="text-sm text-gray-500">
+                                  Type:{" "}
+                                  <span className="text-gray-900">
+                                    {cert.certificateType}
+                                  </span>
+                                </p>
+
                                 {cert.status === "created" ? (
                                   <>
                                     <p className="text-sm text-gray-500">
-                                      Earned:{" "}
+                                      Issued:{" "}
                                       <span className="text-gray-900">
-                                        {formatDate(cert.dateEarned)}
+                                        {formatDate(cert.issuedDate)}
                                       </span>
                                     </p>
                                     <p className="text-sm text-gray-500">
-                                      Expires:{" "}
+                                      Requested:{" "}
                                       <span className="text-gray-900">
-                                        {formatDate(cert.expiryDate)}
+                                        {formatDate(cert.requestedDate)}
+                                      </span>
+                                    </p>
+                                  </>
+                                ) : cert.status === "rejected" ? (
+                                  <>
+                                    <p className="text-sm text-gray-500">
+                                      Requested:{" "}
+                                      <span className="text-gray-900">
+                                        {formatDate(cert.requestedDate)}
+                                      </span>
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                      Reason:{" "}
+                                      <span className="text-gray-900">
+                                        {cert.rejectionReason ||
+                                          "Not specified"}
                                       </span>
                                     </p>
                                   </>
@@ -327,26 +346,26 @@ const Dashboard = () => {
                                     <p className="text-sm text-gray-500">
                                       Requested:{" "}
                                       <span className="text-gray-900">
-                                        {formatDate(cert.dateRequested)}
-                                      </span>
-                                    </p>
-                                    <p className="text-sm text-gray-500">
-                                      Status:{" "}
-                                      <span className="text-gray-900">
-                                        {cert.status}
+                                        {formatDate(cert.requestedDate)}
                                       </span>
                                     </p>
                                   </>
                                 )}
                               </div>
                               <div>
+                                {cert.status === "created" && cert.ipfsId && (
+                                  <p className="text-sm text-gray-500 mt-1 flex items-center">
+                                    <DocumentCheckIcon className="h-4 w-4 mr-1 text-green-500" />
+                                    <span className="text-green-600">
+                                      On-chain verification
+                                    </span>
+                                  </p>
+                                )}
                                 {cert.status === "created" &&
-                                  cert.isVerified && (
-                                    <p className="text-sm text-gray-500 mt-1 flex items-center">
-                                      <DocumentCheckIcon className="h-4 w-4 mr-1 text-green-500" />
-                                      <span className="text-green-600">
-                                        Verified credential
-                                      </span>
+                                  cert.transactionId && (
+                                    <p className="text-sm text-gray-500 mt-1 truncate">
+                                      TX: {cert.transactionId.substring(0, 20)}
+                                      ...
                                     </p>
                                   )}
                               </div>
@@ -359,10 +378,10 @@ const Dashboard = () => {
                           {cert.status === "created" ? (
                             <>
                               <button
-                                onClick={() => downloadCertificate(cert.id)}
-                                disabled={!cert.canDownload}
+                                onClick={() => downloadCertificate(cert.ipfsId)}
+                                disabled={!cert.ipfsId}
                                 className={`inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md ${
-                                  cert.canDownload
+                                  cert.ipfsId
                                     ? "text-gray-700 bg-white hover:bg-gray-50"
                                     : "text-gray-400 bg-gray-100 cursor-not-allowed"
                                 } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
@@ -370,34 +389,50 @@ const Dashboard = () => {
                                 <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
                                 Download
                               </button>
-                              <button
-                                onClick={() => shareCertificate(cert.shareUrl)}
-                                className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                              >
-                                <ShareIcon className="h-4 w-4 mr-2" />
-                                Share
-                              </button>
+                              {cert.ipfsId && (
+                                <button
+                                  onClick={() => shareCertificate(cert.ipfsId)}
+                                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                  <ShareIcon className="h-4 w-4 mr-2" />
+                                  Share
+                                </button>
+                              )}
                             </>
                           ) : (
                             <>
-                              <button
-                                onClick={() => downloadCertificate(cert.id)}
-                                className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                              >
-                                <DocumentTextIcon className="h-4 w-4 mr-2" />
-                                View Request
-                              </button>
+                              {cert.status === "pending" && (
+                                <button
+                                  onClick={() =>
+                                    navigate(`certificate/request/${cert._id}`)
+                                  }
+                                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                  <DocumentTextIcon className="h-4 w-4 mr-2" />
+                                  View Details
+                                </button>
+                              )}
+                              {cert.status === "rejected" && (
+                                <button
+                                  onClick={() => {
+                                    navigate(`certificate/request/${cert._id}`);
+                                  }}
+                                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                  Resubmit Request
+                                </button>
+                              )}
                             </>
                           )}
                         </div>
-                        {cert.status === "created" && (
+                        {cert.status === "created" && cert.ipfsId && (
                           <a
-                            href={cert.shareUrl}
+                            href={`http://localhost:8080/ipfs/${cert.ipfsId}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
                           >
-                            View verification page
+                            View on IPFS
                           </a>
                         )}
                       </div>

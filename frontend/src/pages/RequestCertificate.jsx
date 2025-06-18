@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   AcademicCapIcon,
   ArrowUpTrayIcon,
@@ -6,30 +6,72 @@ import {
   XMarkIcon,
   ArrowPathIcon,
   ChevronDownIcon,
+  PencilIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../context/AuthContext";
+import { useParams, useNavigate } from "react-router-dom";
 
 const RequestCertificate = () => {
   const { token } = useAuth();
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: "",
     certificateType: "",
     attachments: [],
+    existingAttachments: [],
   });
-
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const certificateTypes = [
     "Course Completion",
-    "Workshop Attendance",
-    "Skill Certification",
-    "Program Graduation",
-    "Professional Development",
-    "Academic Achievement",
-    "Extracurricular Participation",
+    "Mark sheet",
+    "Character Certificate",
   ];
+
+  useEffect(() => {
+    if (id) {
+      // Fetch certificate data if in edit mode
+      const fetchCertificate = async () => {
+        try {
+          const response = await fetch(
+            `http://localhost:5000/api/certificates/${id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          if (!response.ok) throw new Error("Failed to fetch certificate");
+          const data = await response.json();
+
+          // Process documentUrl into existingAttachments array
+          const existingFiles = data.documentUrl
+            ? data.documentUrl.split(",").map((url) => ({
+                filename: url.trim(),
+                path: `uploads/certificates/${url.trim()}`,
+                _id: url.trim(), // Using filename as a temporary ID
+              }))
+            : [];
+
+          setFormData({
+            title: data.title,
+            certificateType: data.certificateType,
+            attachments: [],
+            existingAttachments: existingFiles,
+          });
+          setIsEditMode(true);
+        } catch (error) {
+          console.error("Error fetching certificate:", error);
+          navigate("/dashboard");
+        }
+      };
+      fetchCertificate();
+    }
+  }, [id, token, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -54,6 +96,15 @@ const RequestCertificate = () => {
     }));
   };
 
+  const removeExistingAttachment = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      existingAttachments: prev.existingAttachments.filter(
+        (_, i) => i !== index
+      ),
+    }));
+  };
+
   const validateForm = () => {
     const newErrors = {};
     if (!formData.title.trim()) newErrors.title = "Title is required";
@@ -70,29 +121,52 @@ const RequestCertificate = () => {
       return;
     }
     setIsSubmitting(true);
+
     const data = new FormData();
     data.append("title", formData.title);
     data.append("certificateType", formData.certificateType);
+
+    // Append new files
     formData.attachments.forEach((file) => {
       data.append("attachments", file);
     });
-    const response = await fetch(
-      "http://localhost:5000/api/certificates/request",
-      {
-        method: "POST",
+
+    // Append existing attachment filenames to keep (without the uploads/certifications/ prefix)
+    formData.existingAttachments.forEach((attachment) => {
+      if (attachment.filename) {
+        data.append("keepAttachments", attachment.filename);
+      }
+    });
+
+    try {
+      const url = isEditMode
+        ? `http://localhost:5000/api/certificates/request/${id}`
+        : "http://localhost:5000/api/certificates/request";
+
+      const method = isEditMode ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: {
           Authorization: `Bearer ${token}`,
         },
         body: data,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Submission failed");
       }
-    );
-    if (!response.ok) {
-      console.log("Error");
-      return;
+
+      setSubmitSuccess(true);
+      const result = await response.json();
+      console.log(result);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setErrors({ submit: error.message });
+    } finally {
+      setIsSubmitting(false);
     }
-    setSubmitSuccess(true);
-    console.log(await response.json());
-    setIsSubmitting(false);
   };
 
   if (submitSuccess) {
@@ -103,19 +177,30 @@ const RequestCertificate = () => {
             <DocumentTextIcon className="h-6 w-6 text-green-600" />
           </div>
           <h2 className="mt-3 text-2xl font-bold text-gray-900">
-            Request Submitted Successfully!
+            {isEditMode
+              ? "Update Successful!"
+              : "Request Submitted Successfully!"}
           </h2>
           <p className="mt-2 text-gray-600">
-            Your certificate request has been received. We'll process it and
-            notify you via email.
+            {isEditMode
+              ? "Your certificate request has been updated successfully."
+              : "Your certificate request has been received. We'll process it and notify you via email."}
           </p>
-          <div className="mt-6">
+          <div className="mt-6 space-x-4">
             <button
-              onClick={() => setSubmitSuccess(false)}
+              onClick={() => navigate("/dashboard")}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              Submit Another Request
+              Go to Dashboard
             </button>
+            {!isEditMode && (
+              <button
+                onClick={() => setSubmitSuccess(false)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Submit Another Request
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -128,10 +213,14 @@ const RequestCertificate = () => {
         <div className="text-center mb-12">
           <AcademicCapIcon className="mx-auto h-12 w-12 text-indigo-600" />
           <h1 className="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">
-            Certificate Request Form
+            {isEditMode
+              ? "Update Certificate Request"
+              : "Certificate Request Form"}
           </h1>
           <p className="mt-3 text-xl text-gray-500">
-            Please provide all required information to request your certificate
+            {isEditMode
+              ? "Update your certificate request information"
+              : "Please provide all required information to request your certificate"}
           </p>
         </div>
 
@@ -151,7 +240,6 @@ const RequestCertificate = () => {
                 </p>
 
                 <div className="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                  {/* Custom Input Field */}
                   <div className="sm:col-span-6">
                     <label
                       htmlFor="title"
@@ -181,7 +269,6 @@ const RequestCertificate = () => {
                     </div>
                   </div>
 
-                  {/* Custom Select Field */}
                   <div className="sm:col-span-6">
                     <label
                       htmlFor="certificateType"
@@ -265,10 +352,52 @@ const RequestCertificate = () => {
                     </div>
                   </div>
 
+                  {/* Existing attachments */}
+                  {formData.existingAttachments.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="text-sm font-medium text-gray-700 mb-2">
+                        Current Attachments
+                      </h3>
+                      <ul className="space-y-2">
+                        {formData.existingAttachments.map((file, index) => (
+                          <li
+                            key={file._id || index}
+                            className="group flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3"
+                          >
+                            <div className="flex items-center">
+                              <DocumentTextIcon className="flex-shrink-0 h-5 w-5 text-gray-400" />
+                              <div className="ml-3">
+                                <p className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                                  {file.filename}
+                                </p>
+                                <a
+                                  href={`http://localhost:5000/${file.path}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-indigo-600 hover:text-indigo-500"
+                                >
+                                  View file
+                                </a>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeExistingAttachment(index)}
+                              className="text-gray-400 hover:text-red-500 focus:outline-none group-hover:opacity-100 opacity-0 transition-opacity duration-200"
+                            >
+                              <XMarkIcon className="h-5 w-5" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* New attachments */}
                   {formData.attachments.length > 0 && (
                     <div className="mt-4">
                       <h3 className="text-sm font-medium text-gray-700 mb-2">
-                        Selected Files
+                        New Files to Upload
                       </h3>
                       <ul className="space-y-2">
                         {formData.attachments.map((file, index) => (
@@ -307,6 +436,7 @@ const RequestCertificate = () => {
               <div className="flex justify-end space-x-4">
                 <button
                   type="button"
+                  onClick={() => navigate("/user")}
                   className="px-6 py-3 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
                 >
                   Cancel
@@ -323,12 +453,26 @@ const RequestCertificate = () => {
                     </>
                   ) : (
                     <>
-                      <DocumentTextIcon className="mr-2 h-5 w-5" />
-                      Submit Request
+                      {isEditMode ? (
+                        <>
+                          <PencilIcon className="mr-2 h-5 w-5" />
+                          Update Request
+                        </>
+                      ) : (
+                        <>
+                          <DocumentTextIcon className="mr-2 h-5 w-5" />
+                          Submit Request
+                        </>
+                      )}
                     </>
                   )}
                 </button>
               </div>
+              {errors.submit && (
+                <div className="mt-4 text-center text-sm text-red-600">
+                  {errors.submit}
+                </div>
+              )}
             </div>
           </form>
         </div>

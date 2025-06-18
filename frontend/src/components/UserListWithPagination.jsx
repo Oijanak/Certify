@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
-import { useLoaderData } from "react-router-dom";
+import { useLoaderData, useNavigation } from "react-router-dom";
 import { loadUser } from "../hooks/userContext";
+import PageSpinner from "./PageSpinner";
 
 const UserListWithPagination = () => {
   // Sample user data - in a real app, you'd fetch this from an API
-  let allUsers = useLoaderData() || [];
+  let allUsers = useLoaderData();
+  const navigation = useNavigation();
+
+  const isLoading = navigation.state === "loading";
 
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(5);
@@ -23,16 +27,14 @@ const UserListWithPagination = () => {
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
   const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
 
-  // Change page
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  // Reset to first page when search term changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
 
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
-
+  if (isLoading || !allUsers) return <PageSpinner />;
   return (
     <div className="w-full h-full">
       <div className="bg-white rounded-lg shadow-md overflow-hidden w-full">

@@ -20,6 +20,7 @@ import ProfilePage from "./pages/ProfilePage";
 import RequestCertificate from "./pages/RequestCertificate";
 import { CertificateProvider } from "./context/CertificateContext";
 import CertificateDetails from "./components/CertificateDetails";
+import CreatedCertificateDetails from "./pages/CreatedCertificateDetails";
 
 const router = createBrowserRouter([
   {
@@ -70,6 +71,10 @@ const router = createBrowserRouter([
             path: "certificate/request",
             element: <RequestCertificate />,
           },
+          {
+            path: "certificate/request/:id",
+            element: <RequestCertificate />,
+          },
         ],
       },
       {
@@ -100,6 +105,10 @@ const router = createBrowserRouter([
               {
                 path: "certificates/:id",
                 element: <CertificateDetails />,
+              },
+              {
+                path: "certificates/created/:id",
+                element: <CreatedCertificateDetails />,
               },
             ],
           },

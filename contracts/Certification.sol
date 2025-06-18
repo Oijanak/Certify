@@ -44,7 +44,7 @@ contract Certification {
      * @param _holderName Name of the certificate recipient
      * @param _courseName Name of the course/certification
      * @param _issuer Name of the issuing organization
-     * @param _ipfsId URL to the credential (optional)
+     * @param _ipfsId ipfs cid to the credential 
      */
     function issueCertificate(
         string memory _certificateId,
