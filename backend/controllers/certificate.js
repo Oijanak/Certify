@@ -114,3 +114,75 @@ exports.deleteCertificate = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+
+exports.updatePendingRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, certificateType, keepAttachments } = req.body;
+    const userId = req.user.id;
+
+    // Find existing certificate
+    const certificate = await Certificate.findOne({ _id: id, user: userId });
+    if (!certificate) {
+      return res.status(404).json({ message: "Certificate not found" });
+    }
+
+    // Get existing attachments to keep
+    const attachmentsToKeep = Array.isArray(keepAttachments)
+      ? keepAttachments
+      : keepAttachments
+      ? [keepAttachments]
+      : [];
+
+    // Get new attachments
+    const newAttachments = req.files?.map((file) => file.filename) || [];
+
+    // Combine kept and new attachments
+    const allAttachments = [...attachmentsToKeep, ...newAttachments];
+
+    // Delete files that were removed
+    if (certificate.documentUrl) {
+      const existingFiles = certificate.documentUrl.split(",");
+      const filesToDelete = existingFiles.filter(
+        (file) => !attachmentsToKeep.includes(file)
+      );
+
+      filesToDelete.forEach((file) => {
+        const filePath = path.join("uploads/certifications", file);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      });
+    }
+
+    // Update certificate
+    certificate.title = title;
+    certificate.certificateType = certificateType;
+    certificate.requestedDate = Date.now();
+    certificate.documentUrl = allAttachments.join(",");
+    certificate.status = "pending"; // Reset status when updating
+
+    await certificate.save();
+    res.json(certificate);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.updateStatus = async (req, res) => {
+  const {id}=req.params;
+  const {rejectionReason} = req.body;
+  try{
+    const certificate = await Certificate.findById(id);
+    certificate.status='rejected',
+    certificate.rejectionReason=rejectionReason;
+    await certificate.save();
+    res.json.status(200);
+  }
+ catch (error) {
+  console.error(error);
+  res.status(500).json({ message: "Server error" });
+}
+  
+};

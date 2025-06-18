@@ -45,6 +45,9 @@ const certificateSchema = new mongoose.Schema({
   transactionId: {
     type: String,
   },
+  rejectionReason: {
+    type: String,
+  },
 });
 
 module.exports = mongoose.model("Certificate", certificateSchema);

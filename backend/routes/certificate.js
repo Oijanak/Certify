@@ -14,6 +14,13 @@ router.post(
   upload.array("attachments", 2),
   certificateController.requestCertificate
 );
+router.put(
+  "/request/:id",
+  userAuthenticate,
+  upload.array("attachments"),
+  certificateController.updatePendingRequest
+);
+router.put("/status/:id", userAuthenticate, certificateController.updateStatus);
 router.post("/:id", adminAuthenticate, certificateController.updateCertificate);
 router.get("/", adminAuthenticate, certificateController.getAllCertificates);
 router.get("/:id", adminAuthenticate, certificateController.getCertificateById);

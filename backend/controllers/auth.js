@@ -13,7 +13,7 @@ const generateToken = (userId) => {
 
 // Register user with email verification
 exports.register = async (req, res, next) => {
-  const { name, email, password, publicAddress, rollNo } = req.body;
+  const { name, email, password, publicAddress, rollNo, course } = req.body;
   console.log(req.body);
 
   try {
@@ -33,6 +33,7 @@ exports.register = async (req, res, next) => {
       name,
       email,
       rollNo,
+      course,
       password,
       publicAddress,
       emailVerificationCode: verificationCode,
