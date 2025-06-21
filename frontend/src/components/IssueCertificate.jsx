@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import html2canvas from "html2canvas-pro";
 import { jsPDF } from "jspdf";
 import { useCertificate } from "../context/CertificateContext";
-import { useParams } from "react-router-dom";
+import { useNavigate, useNavigation, useParams } from "react-router-dom";
 import PageSpinner from "./PageSpinner";
 import { addFileToIPFS } from "../utils/ipfs";
 import { useContractContext } from "../context/ContractContext";
@@ -13,7 +13,8 @@ const IssueCertificate = () => {
   const { id } = useParams();
   const [dynamicData, setDynamicData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { contract, connectWallet } = useContractContext();
+  const { connectWallet } = useContractContext();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCertificate = async () => {
@@ -124,6 +125,7 @@ const IssueCertificate = () => {
       setIpfsHash(ipfsResponse);
 
       const newContract = await connectWallet();
+      console.log(newContract);
 
       const tx = await newContract.issueCertificate(
         dynamicData._id,
@@ -133,8 +135,10 @@ const IssueCertificate = () => {
         organizationData.issuerName,
         ipfsResponse
       );
+      console.log(tx);
 
       const { transactionHash } = await tx.wait();
+      console.log("Transaction hash" + transactionHash);
 
       const updateData = {
         recipientName: dynamicData.user.name,
@@ -149,7 +153,7 @@ const IssueCertificate = () => {
       const response = await updateCertificate(id, updateData);
 
       if (response.ok) {
-        console.log(await response.json());
+        navigate("/certificates");
       }
     } catch (error) {
       console.error("Error issuing certificate:", error);

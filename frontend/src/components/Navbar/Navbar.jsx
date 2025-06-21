@@ -50,7 +50,7 @@ export default function Navbar() {
           {/* Logo section */}
           <div className="w-1/2 sm:w-auto">
             <Link
-              to={isAuthenticated && !isAdmin ? "/user" : "/"}
+              to={isAuthenticated && !isAdmin ? "/user" : "/admin/dashboard"}
               className="flex items-center sm:flex"
             >
               <img

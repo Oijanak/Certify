@@ -21,6 +21,7 @@ import RequestCertificate from "./pages/RequestCertificate";
 import { CertificateProvider } from "./context/CertificateContext";
 import CertificateDetails from "./components/CertificateDetails";
 import CreatedCertificateDetails from "./pages/CreatedCertificateDetails";
+import UserDetails from "./pages/UserDetails";
 
 const router = createBrowserRouter([
   {
@@ -93,6 +94,10 @@ const router = createBrowserRouter([
                 path: "users",
                 element: <UserListWithPagination />,
                 loader: userLoader,
+              },
+              {
+                path: "users/:id",
+                element: <UserDetails />,
               },
               {
                 path: "certificates",

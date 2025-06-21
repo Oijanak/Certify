@@ -72,9 +72,35 @@ export const CertificateProvider = ({ children }) => {
 
       const updatedCertificate = await response.json();
       console.log("Certificate updated:", updatedCertificate);
+      await fetchCertificates();
       return updatedCertificate;
     } catch (error) {
       console.error("Error updating certificate:", error);
+    }
+  };
+
+  const getAllUserWithCertificates = async (id) => {
+    try {
+      const response = await fetch(
+        "http://localhost:5000/api/certificates/user/" + id,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch users");
+      }
+
+      const users = await response.json();
+      console.log("User data " + users);
+      return users;
+    } catch (error) {
+      return [];
     }
   };
 
@@ -91,6 +117,7 @@ export const CertificateProvider = ({ children }) => {
         fetchCertificates,
         getCertificateById,
         updateCertificate,
+        getAllUserWithCertificates,
       }}
     >
       {children}

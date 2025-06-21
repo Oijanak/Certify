@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLoaderData, useNavigation } from "react-router-dom";
+import { useLoaderData, useNavigate, useNavigation } from "react-router-dom";
 import { loadUser } from "../hooks/userContext";
 import PageSpinner from "./PageSpinner";
 
@@ -7,6 +7,7 @@ const UserListWithPagination = () => {
   // Sample user data - in a real app, you'd fetch this from an API
   let allUsers = useLoaderData();
   const navigation = useNavigation();
+  const navigate = useNavigate();
 
   const isLoading = navigation.state === "loading";
 
@@ -14,6 +15,11 @@ const UserListWithPagination = () => {
   const [usersPerPage] = useState(5);
   const [searchTerm, setSearchTerm] = useState("");
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  if (isLoading) return <PageSpinner />;
   // Filter users based on search term
   const filteredUsers = allUsers.filter(
     (user) =>
@@ -26,15 +32,9 @@ const UserListWithPagination = () => {
   const indexOfLastUser = currentPage * usersPerPage;
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
   const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
-
-  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
-  if (isLoading || !allUsers) return <PageSpinner />;
   return (
     <div className="w-full h-full">
       <div className="bg-white rounded-lg shadow-md overflow-hidden w-full">
@@ -147,7 +147,10 @@ const UserListWithPagination = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium w-1/4">
-                      <button className="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer">
+                      <button
+                        onClick={() => navigate(`/admin/users/${user._id}`)}
+                        className="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer"
+                      >
                         View
                       </button>
                     </td>

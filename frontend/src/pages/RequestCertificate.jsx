@@ -160,7 +160,6 @@ const RequestCertificate = () => {
 
       setSubmitSuccess(true);
       const result = await response.json();
-      console.log(result);
     } catch (error) {
       console.error("Error submitting form:", error);
       setErrors({ submit: error.message });
@@ -188,14 +187,22 @@ const RequestCertificate = () => {
           </p>
           <div className="mt-6 space-x-4">
             <button
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/user")}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               Go to Dashboard
             </button>
             {!isEditMode && (
               <button
-                onClick={() => setSubmitSuccess(false)}
+                onClick={() => {
+                  setFormData({
+                    title: "",
+                    certificateType: "",
+                    attachments: [],
+                    existingAttachments: [],
+                  });
+                  setSubmitSuccess(false);
+                }}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Submit Another Request
