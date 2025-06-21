@@ -2,6 +2,8 @@ const Certificate = require("../models/Cerificate");
 const fs = require("fs");
 const path = require("path");
 
+const User = require("../models/User");
+
 exports.requestCertificate = async (req, res) => {
   try {
     const { title, certificateType } = req.body;
@@ -13,9 +15,19 @@ exports.requestCertificate = async (req, res) => {
       documentUrl: req.fileNames.join(","),
       user: req.user.id,
     });
+
     await certificate.save();
+
+    // Push the certificate to the user's certificates array
+    await User.findByIdAndUpdate(
+      req.user.id,
+      { $push: { certificates: certificate._id } },
+      { new: true }
+    );
+
     res.status(201).json(certificate);
   } catch (error) {
+    console.error(error); // for debugging
     res.status(500).json({ message: "Server Error" });
   }
 };
@@ -171,18 +183,35 @@ exports.updatePendingRequest = async (req, res) => {
 };
 
 exports.updateStatus = async (req, res) => {
-  const {id}=req.params;
-  const {rejectionReason} = req.body;
-  try{
+  const { id } = req.params;
+  const { rejectionReason } = req.body;
+  try {
     const certificate = await Certificate.findById(id);
-    certificate.status='rejected',
-    certificate.rejectionReason=rejectionReason;
+    (certificate.status = "rejected"),
+      (certificate.rejectionReason = rejectionReason);
     await certificate.save();
     res.json.status(200);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
   }
- catch (error) {
-  console.error(error);
-  res.status(500).json({ message: "Server error" });
-}
-  
+};
+
+exports.getUserWithCertificates = async (req, res) => {
+  try {
+    const { userId } = req.params; // or get from req.params.id if you're accessing another user
+
+    const user = await User.findById(userId)
+      .populate("certificates") // This populates certificate data
+      .select("-password"); // Optionally exclude password
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error("Error fetching user with certificates:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 };

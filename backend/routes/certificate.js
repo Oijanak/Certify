@@ -29,4 +29,9 @@ router.delete(
   adminAuthenticate,
   certificateController.deleteCertificate
 );
+router.get(
+  "/user/:userId",
+  adminAuthenticate,
+  certificateController.getUserWithCertificates
+);
 module.exports = router;
