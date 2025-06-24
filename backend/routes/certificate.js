@@ -20,7 +20,11 @@ router.put(
   upload.array("attachments"),
   certificateController.updatePendingRequest
 );
-router.put("/status/:id", userAuthenticate, certificateController.updateStatus);
+router.post(
+  "/status/:id",
+  adminAuthenticate,
+  certificateController.updateStatus
+);
 router.post("/:id", adminAuthenticate, certificateController.updateCertificate);
 router.get("/", adminAuthenticate, certificateController.getAllCertificates);
 router.get("/:id", adminAuthenticate, certificateController.getCertificateById);
@@ -34,4 +38,5 @@ router.get(
   adminAuthenticate,
   certificateController.getUserWithCertificates
 );
+
 module.exports = router;

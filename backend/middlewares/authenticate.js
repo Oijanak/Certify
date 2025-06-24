@@ -32,6 +32,7 @@ exports.adminAuthenticate = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
+
     if (decoded.role == "admin") {
       return res.status(403).json({ message: "Admin only access" });
     }

@@ -184,13 +184,13 @@ exports.updatePendingRequest = async (req, res) => {
 
 exports.updateStatus = async (req, res) => {
   const { id } = req.params;
-  const { rejectionReason } = req.body;
+  const { rejectReason } = req.body;
   try {
     const certificate = await Certificate.findById(id);
     (certificate.status = "rejected"),
-      (certificate.rejectionReason = rejectionReason);
+      (certificate.rejectionReason = rejectReason);
     await certificate.save();
-    res.json.status(200);
+    res.status(200).json({ message: "updated", success: true });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });

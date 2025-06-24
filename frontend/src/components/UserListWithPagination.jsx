@@ -5,7 +5,7 @@ import PageSpinner from "./PageSpinner";
 
 const UserListWithPagination = () => {
   // Sample user data - in a real app, you'd fetch this from an API
-  let allUsers = useLoaderData();
+  let allUsers = useLoaderData() || [];
   const navigation = useNavigation();
   const navigate = useNavigate();
 

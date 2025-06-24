@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowDownTrayIcon,
   CheckBadgeIcon,
-  CircleStackIcon,
   ClockIcon,
   DocumentCheckIcon,
   DocumentTextIcon,
@@ -14,12 +13,47 @@ import {
 } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 import { useCertificate } from "../context/CertificateContext";
+import { useAuth } from "../context/AuthContext";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("created");
-  const { certificates, loading } = useCertificate();
+  const [certificates, setCertificates] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const { token } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchCertificate = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(
+          `http://localhost:5000/api/user/certificates`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (!response.ok) throw new Error("Failed to fetch certificate");
+        const data = await response.json();
+        setCertificates(data);
+        setLoading(false);
+      } catch (error) {
+        setLoading(false);
+        console.error("Error fetching certificate:", error);
+      }
+    };
+    fetchCertificate();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
 
   const filteredCertificates = certificates
     .filter((cert) => {
@@ -74,16 +108,8 @@ const Dashboard = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 ">
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {/* Quick Stats */}

@@ -1,15 +1,25 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DocumentTextIcon,
   ClockIcon,
   CheckCircleIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useCertificate } from "../context/CertificateContext";
 import { useNavigate } from "react-router-dom";
 
 const Certificates = () => {
-  const { certificates: allCertificates } = useCertificate();
+  const { certificates: allCertificates, fetchCertificates } = useCertificate();
+  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetchAll() {
+      await fetchCertificates();
+    }
+    fetchAll();
+  }, []);
 
   // State for active tab
   const [activeTab, setActiveTab] = useState("pending");
@@ -18,10 +28,18 @@ const Certificates = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [certificatesPerPage] = useState(4);
 
-  // Filter certificates based on active tab
-  const filteredCertificates = allCertificates.filter(
-    (cert) => cert.status === activeTab
-  );
+  // Filter certificates based on active tab and search term
+  const filteredCertificates = allCertificates.filter((cert) => {
+    const matchesTab = cert.status === activeTab;
+    const matchesSearch =
+      cert.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cert.certificateType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (cert.user?.email &&
+        cert.user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      cert._id?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    return matchesTab && matchesSearch;
+  });
 
   // Get current certificates
   const indexOfLastCert = currentPage * certificatesPerPage;
@@ -44,23 +62,60 @@ const Certificates = () => {
     setActiveTab(tab);
     setCurrentPage(1);
   };
+
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     const options = { year: "numeric", month: "short", day: "numeric" };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
+
+  // Clear search term
+  const clearSearch = () => {
+    setSearchTerm("");
+    setCurrentPage(1);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-semibold text-gray-800">
-            Certificate Management
-          </h2>
-          <p className="text-gray-600 mt-1">
-            Manage and track all issued certificates
-          </p>
+        {/* Header with Search */}
+        <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-semibold text-gray-800">
+              Certificate Management
+            </h2>
+            <p className="text-gray-600 mt-1">
+              Manage and track all issued certificates
+            </p>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative w-full sm:w-64">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search certificates..."
+              className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              value={searchTerm}
+              onChange={handleSearchChange}
+            />
+            {searchTerm && (
+              <button
+                onClick={clearSearch}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                <XMarkIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Tabs */}
@@ -132,7 +187,7 @@ const Certificates = () => {
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  {activeTab == "pending" ? "Request Date" : "Issue Date"}
+                  {activeTab === "pending" ? "Request Date" : "Issue Date"}
                 </th>
                 <th
                   scope="col"
@@ -151,7 +206,7 @@ const Certificates = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {currentCertificates.length > 0 ? (
                 currentCertificates.map((cert) => (
-                  <tr key={cert.id} className="hover:bg-gray-50">
+                  <tr key={cert._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
@@ -169,7 +224,7 @@ const Certificates = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {cert?.user?.email}
+                        {cert?.user?.email || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -179,7 +234,11 @@ const Certificates = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {formatDate(cert.requestedDate)}
+                        {formatDate(
+                          activeTab === "pending"
+                            ? cert.requestedDate
+                            : cert.issuedDate
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -195,21 +254,18 @@ const Certificates = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {cert.status === "created" ? (
-                        <button
-                          className="text-blue-600 hover:text-blue-900 mr-3"
-                          onClick={() => navigate(`created/${cert._id}`)}
-                        >
-                          View
-                        </button>
-                      ) : (
-                        <button
-                          className="text-blue-600 hover:text-blue-900 mr-3"
-                          onClick={() => navigate(`${cert._id}`)}
-                        >
-                          View
-                        </button>
-                      )}
+                      <button
+                        className="text-blue-600 hover:text-blue-900 mr-3"
+                        onClick={() =>
+                          navigate(
+                            cert.status === "created"
+                              ? `created/${cert._id}`
+                              : cert._id
+                          )
+                        }
+                      >
+                        View
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -219,7 +275,8 @@ const Certificates = () => {
                     colSpan="6"
                     className="px-6 py-4 text-center text-sm text-gray-500"
                   >
-                    No certificates found in this category
+                    No certificates found{" "}
+                    {searchTerm ? "matching your search" : "in this category"}
                   </td>
                 </tr>
               )}

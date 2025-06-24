@@ -25,7 +25,7 @@ export default function UserDropdown({ user, isAdmin, onLogout, onClose }) {
         <p className="text-xs text-gray-500">{user?.email}</p>
       </div>
       <Link
-        to="/profile"
+        to="/user/profile"
         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
         role="menuitem"
         onClick={onClose}
@@ -34,7 +34,6 @@ export default function UserDropdown({ user, isAdmin, onLogout, onClose }) {
       </Link>
       <button
         onClick={() => {
-          console.log("hello");
           setIsModalOpen(true);
         }}
         className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

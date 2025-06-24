@@ -147,6 +147,7 @@ exports.login = async (req, res, next) => {
     }
 
     const isMatch = await user.matchPassword(password);
+    console.log(isMatch);
     if (!isMatch) {
       return next(new ErrorResponse("Invalid credentials", 401));
     }

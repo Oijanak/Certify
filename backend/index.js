@@ -34,7 +34,7 @@ app.use(
 // Routes
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/user", require("./routes/user"));
-app.use("/api/certificates", certificateRoutes);
+app.use("/api/certificates", require("./routes/certificate"));
 
 // Error handling middleware
 app.use(errorHandler);

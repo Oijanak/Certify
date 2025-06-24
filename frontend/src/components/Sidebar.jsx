@@ -40,9 +40,9 @@ const Sidebar = () => {
 
       {/* Sidebar - Removed minimization functionality */}
       <div
-        className={`fixed inset-y-0 left-0 transform ${
+        className={`fixed inset-y-0 left-0 transform  ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 transition duration-200 ease-in-out z-50 bg-white shadow-lg w-90 md:relative`}
+        } md:translate-x-0 transition duration-200 ease-in-out z-10 bg-white shadow-lg w-90 md:relative`}
       >
         {/* Sidebar Header */}
         <div className="flex items-center justify-between p-4 border-b">
@@ -101,24 +101,6 @@ const Sidebar = () => {
               </ul>
             </div>
           </nav>
-        </div>
-
-        {/* Sidebar Footer */}
-        <div className="absolute bottom-0 w-full p-4 border-t">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-                <span className="text-sm font-medium text-gray-600">AD</span>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-700">Admin User</p>
-                <p className="text-xs text-gray-500">admin@example.com</p>
-              </div>
-            </div>
-            <button className="p-1 rounded-full hover:bg-gray-200">
-              <CogIcon className="h-5 w-5 text-gray-600" />
-            </button>
-          </div>
         </div>
       </div>
     </>

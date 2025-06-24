@@ -2,13 +2,16 @@ import React, { useEffect, useState } from "react";
 import PageSpinner from "./PageSpinner";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCertificate } from "../context/CertificateContext";
+import { useAuth } from "../context/AuthContext";
 
 const CertificateDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getCertificateById } = useCertificate();
+  const { token } = useAuth();
+  const { getCertificateById, rejectCertificate } = useCertificate();
   const [certificateData, setCertificateData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [rejectReasonError, setRejectReasonError] = useState("");
 
   useEffect(() => {
     const fetchCertificate = async () => {
@@ -22,6 +25,9 @@ const CertificateDetails = () => {
 
   const [selectedImage, setSelectedImage] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
 
   if (!certificateData || loading) return <PageSpinner />;
   const {
@@ -57,8 +63,43 @@ const CertificateDetails = () => {
     navigate("../certificates/issue/" + id);
   }
 
-  function handleReject() {
-    console.log("Reject button clicked");
+  function handleOpenRejectModal() {
+    setIsRejectModalOpen(true);
+  }
+
+  function handleCloseRejectModal() {
+    setIsRejectModalOpen(false);
+    setRejectReason("");
+  }
+
+  async function handleRejectSubmit() {
+    if (!rejectReason.trim()) {
+      setRejectReasonError("Reject Reason is required");
+      return;
+    }
+    try {
+      setIsRejecting(true);
+      const response = await fetch(
+        `http://localhost:5000/api/certificates/status/` + id,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+
+          body: JSON.stringify({ rejectReason }),
+        }
+      );
+      if (!response.ok) throw new Error("Failed to fetch certificate");
+
+      setIsRejectModalOpen(false);
+      setRejectReason("");
+      navigate(-1);
+      console.log("finished");
+    } catch (error) {
+      setRejectReason("Server Error");
+    }
   }
 
   const openImageModal = (url) => {
@@ -180,7 +221,7 @@ const CertificateDetails = () => {
           {status === "pending" && (
             <div className="flex justify-end space-x-4 mt-8">
               <button
-                onClick={handleReject}
+                onClick={handleOpenRejectModal}
                 className="px-6 py-3 border border-red-600 text-red-600 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors duration-200 text-base font-medium"
               >
                 Reject
@@ -233,6 +274,74 @@ const CertificateDetails = () => {
               >
                 Open in new tab
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {isRejectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-100 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800">
+                Reject Certificate
+              </h3>
+              <button
+                onClick={handleCloseRejectModal}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <label
+                htmlFor="rejectReason"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Reason for rejection
+              </label>
+              <textarea
+                id="rejectReason"
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter the reason for rejecting this certificate request..."
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                required
+              />
+              <span className="text-red-500">{rejectReasonError}</span>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleCloseRejectModal}
+                disabled={isRejecting}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectSubmit}
+                disabled={isRejecting}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+              >
+                {isRejecting ? "Rejecting..." : "Confirm Reject"}
+              </button>
             </div>
           </div>
         </div>

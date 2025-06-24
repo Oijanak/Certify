@@ -67,10 +67,10 @@ const UserProfile = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-full mx-auto">
         {/* User Profile Card (same as before) */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
-          <div className="bg-blue-600 p-6 text-white">
+          <div className="bg-indigo-600 p-6 text-white">
             <h1 className="text-2xl font-bold">{user.name}</h1>
             <p className="text-blue-100">
               {user.role} • {user.course}
