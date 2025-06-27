@@ -10,7 +10,7 @@ export const ContractProvider = ({ children }) => {
   const [contract, setContract] = useState(null);
   const [account, setAccount] = useState(null);
 
-  const contractAddress = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
+  const contractAddress = "0xaE73Bb945CC8d736Bc62E6892D40018De45Ba335";
 
   const connectWallet = async () => {
     if (window.ethereum) {

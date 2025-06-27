@@ -152,9 +152,7 @@ const IssueCertificate = () => {
 
       const response = await updateCertificate(id, updateData);
 
-      if (response.ok) {
-        navigate("/certificates");
-      }
+      navigate("/admin/dashboard");
     } catch (error) {
       console.error("Error issuing certificate:", error);
       alert(`Failed to issue certificate: ${error.message}`);

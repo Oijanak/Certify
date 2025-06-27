@@ -8,9 +8,9 @@ export const abi = [
     anonymous: false,
     inputs: [
       {
-        indexed: true,
+        indexed: false,
         internalType: "string",
-        name: "id",
+        name: "certificateId",
         type: "string",
       },
       {
@@ -41,6 +41,12 @@ export const abi = [
         indexed: false,
         internalType: "string",
         name: "issuer",
+        type: "string",
+      },
+      {
+        indexed: false,
+        internalType: "string",
+        name: "ipfsId",
         type: "string",
       },
     ],

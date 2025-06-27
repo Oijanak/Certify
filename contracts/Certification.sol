@@ -21,12 +21,13 @@ contract Certification {
     
     // Event emitted when a new certificate is issued
     event CertificateIssued(
-        string indexed id,
+        string  certificateId,
         address indexed holder,
         string holderName,
         string courseName,
         uint256 issueDate,
-        string issuer
+        string issuer,
+        string ipfsId
     );
     
     modifier onlyOwner() {
@@ -76,7 +77,8 @@ contract Certification {
             _holderName,
             _courseName,
             block.timestamp,
-            _issuer
+            _issuer,
+            _ipfsId
         );
     }
     

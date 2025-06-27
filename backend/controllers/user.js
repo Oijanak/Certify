@@ -52,3 +52,29 @@ exports.changePassword = async (req, res) => {
     res.status(500).json({ error: "Error changing password" });
   }
 };
+
+exports.getStats = async (req, res) => {
+  try {
+    // Count total users
+    const totalUsers = await User.countDocuments({ role: "user" });
+
+    // Count total certificates created (status: 'created')
+    const certificatesCreated = await Certificate.countDocuments({
+      status: "created",
+    });
+
+    // Count pending certificates
+    const certificatesPending = await Certificate.countDocuments({
+      status: "pending",
+    });
+
+    res.status(200).json({
+      totalUsers,
+      certificatesCreated,
+      certificatesPending,
+    });
+  } catch (err) {
+    console.error("Error fetching stats:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
